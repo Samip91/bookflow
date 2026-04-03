@@ -42,6 +42,7 @@ next-env.d.ts
 
 # firebase
 .firebase/
+firestore-debug.log
 firebase-debug.log*
 ui-debug.log*
 .runtimeconfig.json
@@ -53,3 +54,4 @@ ui-debug.log*
 .kilocode/
 .windsurf/
 skills-lock.json
+.idea/
