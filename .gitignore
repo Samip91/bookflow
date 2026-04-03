@@ -39,3 +39,17 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# firebase
+.firebase/
+firebase-debug.log*
+ui-debug.log*
+.runtimeconfig.json
+
+# AI IDE & Tooling (Cursor, Windsurf, Cline, etc)
+.agents/
+.claude/
+.junie/
+.kilocode/
+.windsurf/
+skills-lock.json
