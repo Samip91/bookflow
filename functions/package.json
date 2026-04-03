@@ -11,11 +11,7 @@
     "logs": "firebase functions:log"
   },
   "engines": {
-<<<<<<< Updated upstream
-    "node": "24"
-=======
     "node": "20"
->>>>>>> Stashed changes
   },
   "main": "lib/index.js",
   "dependencies": {

@@ -51,7 +51,11 @@ export default function LoginPage() {
       await signInWithPopup(auth, provider);
       router.push("/dashboard");
     } catch (err: any) {
-      setError(err.message);
+      if (err.code === 'auth/popup-closed-by-user') {
+        setError("Sign-in cancelled.");
+      } else {
+        setError("Failed to sign in with Google. Please try again.");
+      }
     }
   };
 
@@ -87,6 +91,7 @@ export default function LoginPage() {
               </div>
               <input
                 type="email"
+                aria-label="Admin Email Address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -101,6 +106,7 @@ export default function LoginPage() {
               </div>
               <input
                 type="password"
+                aria-label="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
