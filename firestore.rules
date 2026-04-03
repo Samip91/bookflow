@@ -28,23 +28,26 @@ service cloud.firestore {
     // Users can read/write their own staff profile
     match /users/{userId} {
       allow read: if isAuthenticated() && request.auth.uid == userId;
-      allow write: if false; // Only written via secure Cloud Functions onboarding
+      allow write: if isAuthenticated() && request.auth.uid == userId; // Allow client provisioning
     }
 
     // Businesses
     match /businesses/{businessId} {
       allow read: if true; // Public needs this to view the booking page
-      allow write: if isBusinessStaff(businessId);
+      allow create: if isAuthenticated(); // Allow client provisioning
+      allow update, delete: if isBusinessStaff(businessId);
     }
     
     // Services & Availability
     match /services/{serviceId} {
       allow read: if true; // Public needs to see what they can book
-      allow write: if isBusinessStaff(resource.data.businessId);
+      allow create: if isBusinessStaff(request.resource.data.businessId);
+      allow update, delete: if isBusinessStaff(resource.data.businessId);
     }
     match /availability/{availId} {
       allow read: if true; // Public needs to see available hours
-      allow write: if isBusinessStaff(resource.data.businessId);
+      allow create: if isBusinessStaff(request.resource.data.businessId);
+      allow update, delete: if isBusinessStaff(resource.data.businessId);
     }
 
     // ==========================================
