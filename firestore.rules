@@ -11,9 +11,11 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    // Grabs the user's businessId from their user document
+    // Grabs the user's businessId safely without throwing Null evaluation errors
     function getUserBusinessId() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId;
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.businessId
+        : null;
     }
     
     // Checks if the user belongs to the requested businessId
@@ -25,27 +27,24 @@ service cloud.firestore {
     // BUSINESS OVERSIGHT (ADMINS)
     // ==========================================
     
-    // Users can read/write their own staff profile
     match /users/{userId} {
       allow read: if isAuthenticated() && request.auth.uid == userId;
-      allow write: if isAuthenticated() && request.auth.uid == userId; // Allow client provisioning
+      allow write: if isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Businesses
     match /businesses/{businessId} {
-      allow read: if true; // Public needs this to view the booking page
-      allow create: if isAuthenticated(); // Allow client provisioning
+      allow read: if true; 
+      allow create: if isAuthenticated(); 
       allow update, delete: if isBusinessStaff(businessId);
     }
     
-    // Services & Availability
     match /services/{serviceId} {
-      allow read: if true; // Public needs to see what they can book
+      allow read: if true; 
       allow create: if isBusinessStaff(request.resource.data.businessId);
       allow update, delete: if isBusinessStaff(resource.data.businessId);
     }
     match /availability/{availId} {
-      allow read: if true; // Public needs to see available hours
+      allow read: if true; 
       allow create: if isBusinessStaff(request.resource.data.businessId);
       allow update, delete: if isBusinessStaff(resource.data.businessId);
     }
@@ -58,17 +57,19 @@ service cloud.firestore {
       // 1. Staff can do everything for their business
       allow read, update, delete: if isBusinessStaff(resource.data.businessId);
       
-      // 2. Public can create, BUT we enforce severe restrictions so they can't spoof data
+      // 2. Allow Admins to securely create
+      allow create: if isBusinessStaff(request.resource.data.businessId);
+
+      // 3. Allow Public to create (Safe fallback for now, Phase 4 will use Cloud Functions)
       allow create: if true 
-        && request.resource.data.keys().hasAll(['businessId', 'customerId', 'serviceId', 'startTime', 'endTime', 'status'])
         && request.resource.data.status == 'booked'
-        && request.resource.data.reminderSent == false;
+        && request.resource.data.reminderSent == false
+        && request.resource.data.keys().hasAll(['businessId', 'customerId', 'serviceId', 'dateString', 'startTime', 'status']);
     }
     
     match /customers/{customerId} {
-      // Never allow public read! Massively vulnerable to PII scraping.
       allow read, update, delete: if isBusinessStaff(resource.data.businessId);
-      allow create: if true; // Public can create themselves when booking
+      allow create: if true;
     }
   }
 }
