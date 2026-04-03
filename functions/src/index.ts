@@ -1,32 +1,41 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * import {onCall} from "firebase-functions/v2/https";
- * import {onDocumentWritten} from "firebase-functions/v2/firestore";
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
+import * as functions from "firebase-functions/v1";
+import * as admin from "firebase-admin";
 
-import {setGlobalOptions} from "firebase-functions";
-import {onRequest} from "firebase-functions/https";
-import * as logger from "firebase-functions/logger";
+admin.initializeApp();
+const db = admin.firestore();
 
-// Start writing functions
-// https://firebase.google.com/docs/functions/typescript
+// Triggered instantly anytime a user signs up via Firebase Auth
+export const onUserCreated = functions.auth.user().onCreate(async (user) => {
+  const batch = db.batch();
 
-// For cost control, you can set the maximum number of containers that can be
-// running at the same time. This helps mitigate the impact of unexpected
-// traffic spikes by instead downgrading performance. This limit is a
-// per-function limit. You can override the limit for each function using the
-// `maxInstances` option in the function's options, e.g.
-// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
-// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
-// functions should each use functions.runWith({ maxInstances: 10 }) instead.
-// In the v1 API, each function can only serve one request per container, so
-// this will be the maximum concurrent request count.
-setGlobalOptions({ maxInstances: 10 });
+  // 1. Create a core business tenant definition
+  const businessRef = db.collection("businesses").doc();
+  const businessData = {
+    id: businessRef.id,
+    name: user.displayName || "My Business", // Will be editable in settings
+    slug: businessRef.id, // Initial public URL slug identifier
+    ownerId: user.uid,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    plan: "free",
+  };
+  batch.set(businessRef, businessData);
 
-// export const helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+  // 2. Map the Auth User tightly to their new Business Tenant
+  // This is CRITICAL for firestore.rules (isBusinessStaff function)
+  const userRef = db.collection("users").doc(user.uid);
+  const userData = {
+    id: user.uid,
+    email: user.email || "",
+    businessId: businessRef.id,
+    role: "owner",
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+  batch.set(userRef, userData);
+
+  try {
+    await batch.commit();
+    console.log(`Successfully provisioned tenant (${businessRef.id}) for user ${user.uid}`);
+  } catch (error) {
+    console.error("Error provisioning tenant:", error);
+  }
+});
