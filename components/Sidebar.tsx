@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, CalendarDays, Users, Settings, Briefcase, LogOut } from "lucide-react";
+import { LayoutDashboard, CalendarDays, Users, Settings, Briefcase, LogOut, Clock } from "lucide-react";
 import { auth } from "@/lib/firebase";
 
 const navItems = [
@@ -10,6 +10,7 @@ const navItems = [
   { name: "Appointments", href: "/appointments", icon: CalendarDays },
   { name: "Customers", href: "/customers", icon: Users },
   { name: "Services", href: "/services", icon: Briefcase },
+  { name: "Availability", href: "/availability", icon: Clock },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
