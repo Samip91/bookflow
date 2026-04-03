@@ -2,21 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { db } from "@/lib/firebase";
-import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
+import { useServices, Service } from "@/hooks/firebase/useServices";
 import { Plus, Edit2, Trash2, X, Briefcase } from "lucide-react";
-
-interface Service {
-  id: string;
-  name: string;
-  duration: number;
-  price: number;
-  isActive: boolean;
-}
 
 export default function ServicesPage() {
   const { user } = useAuth();
-  const [services, setServices] = useState<Service[]>([]);
+  const { services, isLoading, addService, updateService, deleteService } = useServices(user?.businessId);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
 
@@ -24,21 +15,7 @@ export default function ServicesPage() {
   const [formData, setFormData] = useState({ name: "", duration: 30, price: 0, isActive: true });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (!user?.businessId) return;
-
-    // Listen natively to any changes in Services mapped strictly to this tenant
-    const q = query(collection(db, "services"), where("businessId", "==", user.businessId));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const servicesData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Service[];
-      setServices(servicesData);
-    });
-
-    return () => unsubscribe();
-  }, [user]);
+  // Removed direct onSnapshot listener; now handled cleanly by useServices hook
 
   const openNewModal = () => {
     setEditingService(null);
@@ -67,16 +44,9 @@ export default function ServicesPage() {
     setIsSubmitting(true);
     try {
       if (editingService) {
-        await updateDoc(doc(db, "services", editingService.id), {
-          ...formData,
-          updatedAt: serverTimestamp()
-        });
+        await updateService(editingService.id, formData);
       } else {
-        await addDoc(collection(db, "services"), {
-          ...formData,
-          businessId: user.businessId, // Critical Security assignment
-          createdAt: serverTimestamp()
-        });
+        await addService(formData);
       }
       closeModal();
     } catch (err) {
@@ -89,9 +59,11 @@ export default function ServicesPage() {
 
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this service?")) {
-      await deleteDoc(doc(db, "services", id));
+      await deleteService(id);
     }
   };
+
+  if (isLoading) return <div className="p-8 text-slate-500 font-medium animate-pulse">Loading secure services view...</div>;
 
   return (
     <div className="w-full max-w-5xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">

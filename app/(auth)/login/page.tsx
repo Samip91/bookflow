@@ -1,14 +1,12 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { auth } from "@/lib/firebase";
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Activity, Mail, Lock, Sparkles, LogIn } from "lucide-react";
 
 export default function LoginPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, loginWithEmail, loginWithGoogle } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -27,7 +25,7 @@ export default function LoginPage() {
     setError("");
     setIsSubmitting(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await loginWithEmail(email, password);
       router.push("/dashboard");
     } catch (err: any) {
       // Provide proper formatting instead of exposing internal Firebase codes
@@ -47,8 +45,7 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      await loginWithGoogle();
       router.push("/dashboard");
     } catch (err: any) {
       if (err.code === 'auth/popup-closed-by-user') {
